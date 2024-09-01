@@ -8,8 +8,7 @@ import hashlib
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print('Usage: ./markdown2html.py README.md README.html',
-              file=sys.stderr)
+        print('Usage: ./markdown2html.py README.md README.html', file=sys.stderr)
         exit(1)
 
     if not os.path.isfile(sys.argv[1]):
@@ -19,76 +18,78 @@ if __name__ == '__main__':
     with open(sys.argv[1]) as read:
         with open(sys.argv[2], 'w') as html:
             unordered_start, ordered_start, paragraph = False, False, False
-            # bold syntax markdown to html
+            
+            # Process each line from the input Markdown file
             for line in read:
-                line = line.replace('**', '<b>', 1)
-                line = line.replace('**', '</b>', 1)
-                line = line.replace('__', '<em>', 1)
-                line = line.replace('__', '</em>', 1)
+                # Handle bold and italic Markdown
+                line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
+                line = re.sub(r'__(.*?)__', r'<em>\1</em>', line)
 
-                # md5
-                md5 = re.findall(r'\[\[.+?\]\]', line)
-                md5_inside = re.findall(r'\[\[(.+?)\]\]', line)
-                if md5:
-                    line = line.replace(md5[0], hashlib.md5(
-                        md5_inside[0].encode()).hexdigest())
+                # Handle [[md5]] syntax
+                md5_matches = re.findall(r'\[\[(.+?)\]\]', line)
+                for match in md5_matches:
+                    md5_hash = hashlib.md5(match.encode()).hexdigest()
+                    line = line.replace(f'[[{match}]]', md5_hash)
 
-                # removing the letter C
-                remove_letter_c = re.findall(r'\(\(.+?\)\)', line)
-                remove_c_more = re.findall(r'\(\((.+?)\)\)', line)
-                if remove_letter_c:
-                    remove_c_more = ''.join(
-                        c for c in remove_c_more[0] if c not in 'Cc')
-                    line = line.replace(remove_letter_c[0], remove_c_more)
+                # Remove 'C' from ((text))
+                remove_c_matches = re.findall(r'\(\((.*?)\)\)', line)
+                for match in remove_c_matches:
+                    cleaned_text = match.replace('C', '')
+                    line = line.replace(f'(({match}))', cleaned_text)
 
-                length = len(line)
-                headings = line.lstrip('#')
-                heading_num = length - len(headings)
-                unordered = line.lstrip('-')
-                unordered_num = length - len(unordered)
-                ordered = line.lstrip('*')
-                ordered_num = length - len(ordered)
-                # headings and lists
-                if 1 <= heading_num <= 6:
-                    line = '<h{}>'.format(
-                        heading_num) + headings.strip() + '</h{}>\n'.format(
-                        heading_num)
-
-                if unordered_num:
+                # Handle headings
+                heading_match = re.match(r'^(#{1,6})\s*(.*)', line)
+                if heading_match:
+                    hashes, heading_text = heading_match.groups()
+                    level = len(hashes)
+                    line = f'<h{level}>{heading_text.strip()}</h{level}>\n'
+                
+                # Handle unordered lists
+                if line.startswith('- '):
                     if not unordered_start:
                         html.write('<ul>\n')
                         unordered_start = True
-                    line = '<li>' + unordered.strip() + '</li>\n'
-                if unordered_start and not unordered_num:
+                    line = f'<li>{line[2:].strip()}</li>\n'
+                
+                if unordered_start and not line.startswith('- '):
                     html.write('</ul>\n')
                     unordered_start = False
 
-                if ordered_num:
+                # Handle ordered lists
+                elif line.startswith('* '):
                     if not ordered_start:
                         html.write('<ol>\n')
                         ordered_start = True
-                    line = '<li>' + ordered.strip() + '</li>\n'
-                if ordered_start and not ordered_num:
+                    line = f'<li>{line[2:].strip()}</li>\n'
+                
+                if ordered_start and not line.startswith('* '):
                     html.write('</ol>\n')
                     ordered_start = False
 
-                if not (heading_num or unordered_start or ordered_start):
-                    if not paragraph and length > 1:
-                        html.write('<p>\n')
-                        paragraph = True
-                    elif length > 1:
-                        html.write('<br/>\n')
-                    elif paragraph:
+                # Handle paragraphs
+                if not (heading_match or unordered_start or ordered_start):
+                    if line.strip():
+                        if not paragraph:
+                            html.write('<p>\n')
+                            paragraph = True
+                        html.write(line)
+                    else:
+                        if paragraph:
+                            html.write('</p>\n')
+                            paragraph = False
+                else:
+                    if paragraph:
                         html.write('</p>\n')
                         paragraph = False
-
-                if length > 1:
                     html.write(line)
 
+            # Close any remaining open tags
             if unordered_start:
                 html.write('</ul>\n')
             if ordered_start:
                 html.write('</ol>\n')
             if paragraph:
                 html.write('</p>\n')
-    exit (0)
+
+    exit(0)
+
