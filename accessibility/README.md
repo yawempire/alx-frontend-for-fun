@@ -60,4 +60,4 @@ Read or watch:
 ---
 
 ## Author
-* **Joseph Mahiuha** - [Mahiuha](https://github.com/Mahiuha) - [twitter:speech_balloon:](https://twitter.com/Joseph_Mahiuha)
+* **Emmanuel Asante** - [yawempire](https://github.com/yawempire) - [twitter:speech_balloon:](https://twitter.com/yawempire)
