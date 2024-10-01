@@ -1,4 +1,4 @@
-/* colors */
+/* Assigns colors to body, p and background to body, h2 */
 
 $text-color: #3D3D3D;
 $bg-color: #6D6D6D;
@@ -13,5 +13,5 @@ p {
 }
 
 h2 {
-    background-color: $bg-color;
+  background-color: $bg-color;
 }
